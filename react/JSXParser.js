@@ -30,8 +30,7 @@ const res = excuteFunc(createElement, state);
 console.log(JSON.stringify(res, null, 4));
 state.name = 'David';
 
-const result = excuteFunc(createElement, state);
-console.log(JSON.stringify(result, null, 4));
+
 // function processExcuteStr (str) {
 //     const arr = str.split('+');
 //     let res = ``;
@@ -86,6 +85,8 @@ function astToExcuteStr (ast) {
 
                                     new Watcher(state, 'name', (newVal) => {
                                         console.log('======>>>', newVal);
+                                        const result = excuteFunc(createElement, state);
+                                        console.log('+++++++++++++++',JSON.stringify(result, null, 4));
                                     });
                                 } else {
                                     excuteStr += `'${item}'`;
