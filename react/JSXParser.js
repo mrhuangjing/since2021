@@ -1,10 +1,21 @@
+const defineReactive = require('../vue/defineReactive');
+const Watcher = require('../vue/watcher');
+const createElement = require('./createElement_2');
+
 const template = `<div>
-    <h1 id="title">Title</h1>
+    <h1 id = "title" data_show= 'true'>Title</h1>
+    <div>姓名: {name}</div>
     <a href="xxx">Jump</a>
     <section>
         <p>Article</p>
     </section>
 </div>`;
+
+const state = {
+    name: 'jh'
+};
+
+defineReactive(state);
 
 const START_REG = /^<\s*([\w-_]+)\s*([^<>]*)>/;
 const END_REG = /^<\s*\/([\w-_]+)[^<>]*>/;
@@ -13,11 +24,30 @@ const TEXT_REG = /^([^<>\n\r]+)/;
 const ast = parse(template);
 // console.log(JSON.stringify(ast, null, 4));
 // console.log(astToExcuteStr(ast));
+const excuteFunc = new Function('createElement', 'state', `return ${astToExcuteStr(ast)}`);
+// console.log(excuteFunc.toString())
+const res = excuteFunc(createElement, state);
+console.log(JSON.stringify(res, null, 4));
+state.name = 'David';
 
-const excuteFunc = new Function('createElement', `return ${astToExcuteStr(ast)}`);
+const result = excuteFunc(createElement, state);
+console.log(JSON.stringify(result, null, 4));
+// function processExcuteStr (str) {
+//     const arr = str.split('+');
+//     let res = ``;
+//     arr.forEach(el => {
+//         if (state.hasOwnProperty(el)) {
+//             res += `${state[el]}`;
 
-// const res = excuteFunc(createElement);
-// console.log(JSON.stringify(res, null, 4));
+//             new Watcher(state, 'name', (newVal) => {
+//                 console.log('======>>>', newVal);
+//             });
+//         } else {
+//             res += `${el}`;
+//         }
+//     });
+//     return res;
+// }
 
 function astToExcuteStr (ast) {
     let excuteStr = ``;
@@ -29,9 +59,11 @@ function astToExcuteStr (ast) {
         } else {
             if (keys.length > 2) {
                 excuteStr += '{ ';
+                let flag = false;
                 keys.forEach(key => {
                     if (key != 'type' && key != 'children') {
-                        excuteStr += `${key}: '${ast[key]}'`;
+                        excuteStr += `${flag ? ', ' : ''}${key}: '${ast[key]}'`;
+                        flag = true;
                     }
                 });
                 excuteStr += ' }, ';
@@ -43,7 +75,30 @@ function astToExcuteStr (ast) {
                 excuteStr += `[ `;
                 ast.children.forEach((el, index) => {
                     if (el.type === 'text') {
-                        excuteStr += `${index > 0 ? ', ' : ''}'${el.content}'`;
+                        excuteStr += `${index > 0 ? ', ' : ''}`;
+                        const reg = /{[^{}]+}/g;
+                        const arr = el.content.match(reg);
+                        if (arr) {
+                            const a = el.content.split(/{([^{}]+)}/);
+                            a.forEach(item => {
+                                if (state.hasOwnProperty(item)) {
+                                    excuteStr += `+state.${item}+`;
+
+                                    new Watcher(state, 'name', (newVal) => {
+                                        console.log('======>>>', newVal);
+                                    });
+                                } else {
+                                    excuteStr += `'${item}'`;
+                                }
+                            });
+                            // arr.forEach(item => {
+                            //     const a = item.match(/{([^{}]+)}/);
+                            //     el.content = el.content.replace(item, `+${a[1]}+`);
+                            // });
+                            // excuteStr += `${index > 0 ? ', ' : ''}'${el.content}'`;
+                        } else {
+                            excuteStr += `${index > 0 ? ', ' : ''}'${el.content}'`;
+                        }
                     } else {
                         excuteStr += `${index > 0 ? ', ' : ''}${astToExcuteStr(el)}`;
                     }
@@ -53,6 +108,7 @@ function astToExcuteStr (ast) {
             excuteStr += ` )`;
         }
     }
+    // console.log('----', excuteStr)
     return excuteStr;
 }
 
@@ -145,7 +201,8 @@ function parseEndTag (str) {
 }
 
 function parseProps (str) {
-    const propsArr = str.split(' ').filter(el => {
+    const splitReg = /([\w-_]+\s*=\s*['"].*?['"])/;
+    const propsArr = str.split(splitReg).filter(el => {
         if (el) {
             return true;
         }
@@ -154,9 +211,11 @@ function parseProps (str) {
     if (propsArr.length) {
         const res = {};
         propsArr.forEach(el => {
-            const reg = /^([\w-_]+)=['"](.*)['"]$/;
+            const reg = /([\w-_]+)\s*=\s*['"](.*)['"]/;
             const arr = el.match(reg);
-            res[arr[1]] = arr[2];
+            if (arr) {
+                res[arr[1]] = arr[2];
+            }
         });
         return res;
     }

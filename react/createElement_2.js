@@ -1,5 +1,5 @@
 // const excuteFunc = require('./JSXParser');
-const res = excuteFunc(createElement);
+// const res = excuteFunc(createElement);
 
 // const res = createElement('div',
 //         null, [
@@ -27,7 +27,7 @@ const res = excuteFunc(createElement);
 //         )
 //     ]);
 
-console.log(JSON.stringify(res, null, 4));
+// console.log(JSON.stringify(res, null, 4));
 
 
 function createElement (type, config, children) {
@@ -50,3 +50,5 @@ function createElement (type, config, children) {
 
     return res;
 }
+
+module.exports = createElement;
