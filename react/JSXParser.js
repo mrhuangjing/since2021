@@ -33,6 +33,7 @@ function diff (vNode, newVNode) {
     if (newVNode.props) newVNodeCh = newVNode.props.children;
 
     if (vNode === newVNode) return;
+    if (!vNode || !newVNode) return;
 
     if (vNode.type != newVNode.type) {
         // 用新的节点替换旧的节点
