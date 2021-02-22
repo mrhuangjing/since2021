@@ -27,13 +27,13 @@ function render (state) {
 
 function diff (vNode, newVNode) {
     // 通过比较vDom和newVDom，将区别逐个同步到真实DOM
+    if (!vNode || !newVNode) return;
 
     let vNodeCh, newVNodeCh;
     if (vNode.props) vNodeCh = vNode.props.children;
     if (newVNode.props) newVNodeCh = newVNode.props.children;
 
     if (vNode === newVNode) return;
-    if (!vNode || !newVNode) return;
 
     if (vNode.type != newVNode.type) {
         // 用新的节点替换旧的节点
