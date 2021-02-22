@@ -1,54 +1,84 @@
-const defineReactive = require('../vue/defineReactive');
 const Watcher = require('../vue/watcher');
 const createElement = require('./createElement_2');
-
-const template = `<div>
-    <h1 id = "title" data_show= 'true'>Title</h1>
-    <div>姓名: {name}</div>
-    <a href="xxx">Jump</a>
-    <section>
-        <p>Article</p>
-    </section>
-</div>`;
-
-const state = {
-    name: 'jh'
-};
-
-defineReactive(state);
 
 const START_REG = /^<\s*([\w-_]+)\s*([^<>]*)>/;
 const END_REG = /^<\s*\/([\w-_]+)[^<>]*>/;
 const TEXT_REG = /^([^<>\n\r]+)/;
 
-const ast = parse(template);
-// console.log(JSON.stringify(ast, null, 4));
-// console.log(astToExcuteStr(ast));
-const excuteFunc = new Function('createElement', 'state', `return ${astToExcuteStr(ast)}`);
-// console.log(excuteFunc.toString())
-const res = excuteFunc(createElement, state);
-console.log(JSON.stringify(res, null, 4));
-state.name = 'David';
+let excuteFunc;
+let vDom, newVDom;
 
+function main (template, state) {
+    const ast = parse(template);
+    const excuteStr = astToExcuteStr(ast, state);
+    excuteFunc = new Function('createElement', 'state', `return ${excuteStr}`);
+    return () => {
+        vDom = excuteFunc(createElement, state);
+        return vDom;
+    };
+}
 
-// function processExcuteStr (str) {
-//     const arr = str.split('+');
-//     let res = ``;
-//     arr.forEach(el => {
-//         if (state.hasOwnProperty(el)) {
-//             res += `${state[el]}`;
+function render (state) {
+    // 根据变化的state生成新的vDom
+    newVDom = excuteFunc(createElement, state);
+    diff(vDom, newVDom);
+    vDom = newVDom; // 新的vDom成为当前vDom
+}
 
-//             new Watcher(state, 'name', (newVal) => {
-//                 console.log('======>>>', newVal);
-//             });
-//         } else {
-//             res += `${el}`;
-//         }
-//     });
-//     return res;
-// }
+function diff (vNode, newVNode) {
+    // 通过比较vDom和newVDom，将区别逐个同步到真实DOM
 
-function astToExcuteStr (ast) {
+    let vNodeCh, newVNodeCh;
+    if (vNode.props) vNodeCh = vNode.props.children;
+    if (newVNode.props) newVNodeCh = newVNode.props.children;
+
+    if (vNode === newVNode) return;
+
+    if (vNode.type != newVNode.type) {
+        // 用新的节点替换旧的节点
+        return;
+    }
+
+    if (newVNode.props && vNode.props) {
+        const propsArr = [];
+        Object.keys(newVNode.props).forEach(key => {
+            if (key != 'children') {
+                propsArr.push(key);
+                if (vNode.props.hasOwnProperty(key)) {
+                    if (vNode.props[key] != newVNode.props[key]) {
+                        // 更新属性
+                    }
+                } else {
+                    // 新增属性
+                }
+            }
+        });
+
+        Object.keys(vNode.props).forEach(key => {
+            if (propsArr.indexOf(key) === -1) {
+                // 删除属性
+            }
+        });
+    } else if (vNode.props) {
+        // 删除属性
+    } else if (newVNode.props) {
+        // 新增属性
+    }
+    
+
+    if (vNodeCh && newVNodeCh) {
+        vNodeCh.forEach((el, index) => {
+            diff(el, newVNodeCh[index]);
+        });
+    } else if (vNodeCh) {
+        // 删除子节点
+    } else if (newVNodeCh) {
+        // 新增子节点
+    }
+    
+}
+
+function astToExcuteStr (ast, state) {
     let excuteStr = ``;
     if (ast) {
         excuteStr += `createElement('${ast.type}', `;
@@ -83,25 +113,20 @@ function astToExcuteStr (ast) {
                                 if (state.hasOwnProperty(item)) {
                                     excuteStr += `+state.${item}+`;
 
-                                    new Watcher(state, 'name', (newVal) => {
-                                        console.log('======>>>', newVal);
-                                        const result = excuteFunc(createElement, state);
-                                        console.log('+++++++++++++++',JSON.stringify(result, null, 4));
+                                    new Watcher(state, item, (newVal) => {
+                                        console.log(`state的${item}属性更新值`, newVal);
+                                        render(state);
+                                        console.log('重新生成vDom: ', JSON.stringify(vDom, null, 4))
                                     });
                                 } else {
                                     excuteStr += `'${item}'`;
                                 }
                             });
-                            // arr.forEach(item => {
-                            //     const a = item.match(/{([^{}]+)}/);
-                            //     el.content = el.content.replace(item, `+${a[1]}+`);
-                            // });
-                            // excuteStr += `${index > 0 ? ', ' : ''}'${el.content}'`;
                         } else {
                             excuteStr += `${index > 0 ? ', ' : ''}'${el.content}'`;
                         }
                     } else {
-                        excuteStr += `${index > 0 ? ', ' : ''}${astToExcuteStr(el)}`;
+                        excuteStr += `${index > 0 ? ', ' : ''}${astToExcuteStr(el, state)}`;
                     }
                 });
                 excuteStr += ` ]`;
@@ -109,7 +134,6 @@ function astToExcuteStr (ast) {
             excuteStr += ` )`;
         }
     }
-    // console.log('----', excuteStr)
     return excuteStr;
 }
 
@@ -223,4 +247,4 @@ function parseProps (str) {
     return null;
 }
 
-// module.exports = excuteFunc;
+module.exports = main;

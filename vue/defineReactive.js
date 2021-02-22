@@ -28,14 +28,14 @@ function defineReactive (obj) {
 function observe (obj, prop, value) {
     Object.defineProperty(obj, prop, {
         get () {
-            console.log('get==', value)
+            // console.log('get==', value)
             if (Dep.target) {
                 dep.addSub(Dep.target);
             }
             return value;
         },
         set (val) {
-            console.log('set==', val)
+            // console.log('set==', val)
             value = val;
             dep.notify();
         }
